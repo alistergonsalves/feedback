@@ -1,0 +1,114 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Feedback</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center mb-6">Thank You For Visiting Alister Tyre Service.</h1>
+        <div id="feedbackForm" class="space-y-4">
+            <p class="text-center text-gray-600">Please rate your experience:</p>
+            <div class="flex justify-center space-x-2">
+                <button type="button" onclick="rate(1)" class="star text-3xl text-gray-300 hover:text-yellow-400 focus:outline-none" data-value="1">★</button>
+                <button type="button" onclick="rate(2)" class="star text-3xl text-gray-300 hover:text-yellow-400 focus:outline-none" data-value="2">★</button>
+                <button type="button" onclick="rate(3)" class="star text-3xl text-gray-300 hover:text-yellow-400 focus:outline-none" data-value="3">★</button>
+                <button type="button" onclick="rate(4)" class="star text-3xl text-gray-300 hover:text-yellow-400 focus:outline-none" data-value="4">★</button>
+                <button type="button" onclick="rate(5)" class="star text-3xl text-gray-300 hover:text-yellow-400 focus:outline-none" data-value="5">★</button>
+            </div>
+            <textarea id="comment" rows="4" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your comments (optional)"></textarea>
+            <button onclick="submitFeedback()" class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 focus:outline-none">Submit Feedback</button>
+        </div>
+        <div id="confirmation" class="hidden text-center text-green-600 font-semibold mt-4">
+            Thank you for your feedback!
+        </div>
+    </div>
+
+    <script>
+        let selectedRating = 0;
+
+        function rate(value) {
+            selectedRating = value;
+            const stars = document.querySelectorAll('.star');
+            stars.forEach(star => {
+                star.classList.remove('text-yellow-400');
+                star.classList.add('text-gray-300');
+                if (parseInt(star.dataset.value) <= value) {
+                    star.classList.remove('text-gray-300');
+                    star.classList.add('text-yellow-400');
+                }
+            });
+        }
+
+        function submitFeedback() {
+            const comment = document.getElementById('comment').value;
+            const feedbackForm = document.getElementById('feedbackForm');
+            const confirmation = document.getElementById('confirmation');
+
+            if (selectedRating === 0) {
+                alert('Please select a rating.');
+                return;
+            }
+
+            if (selectedRating >= 4) {
+                // Redirect to Google Business Reviews page for 4-5 stars
+                // Replace with your actual Google review link
+                window.location.href = 'https://g.page/r/CS8z_kTqTHC_EAE/review';
+            } else {
+                // Show confirmation for 1-3 stars without posting
+                feedbackForm.classList.add('hidden');
+                confirmation.classList.remove('hidden');
+            }
+
+            // Reset form
+            selectedRating = 0;
+            document.getElementById('comment').value = '';
+            document.querySelectorAll('.star').forEach(star => {
+                star.classList.remove('text-yellow-400');
+                star.classList.add('text-gray-300');
+            });
+        }
+    </script>
+</body>
+</html>
